@@ -1,0 +1,9 @@
+patterns:
+  - name: "go-source-files"
+    filename: "\\.go$"
+    context:
+      - "go.md"
+      - "cli.md"
+    diff_context:
+      - "go.md"
+      - "cli.md"
