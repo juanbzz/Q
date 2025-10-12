@@ -114,7 +114,10 @@ func (a *DefaultAgent) Execute(ctx context.Context, prompt string) (*AgentRespon
 	}
 
 	// Main agent loop
-	maxIterations := 10
+	maxIterations := a.config.MaxIterations
+	if maxIterations <= 0 {
+		maxIterations = 10 // Default to 10 if not configured
+	}
 	var finalResponse *AgentResponse
 	var allExecutedCalls []ToolCall
 
@@ -125,14 +128,14 @@ func (a *DefaultAgent) Execute(ctx context.Context, prompt string) (*AgentRespon
 			return nil, fmt.Errorf("LLM error: %w", err)
 		}
 
-		// Add assistant message
-		a.messages = append(a.messages, Message{
-			Role:    "assistant",
-			Content: response.Content,
-		})
-
-		// If no tool calls, we're done
+		// If no tool calls, we're done - add content and return
 		if len(response.ToolCalls) == 0 {
+			// Only add assistant message when there are no tool calls (final response)
+			a.messages = append(a.messages, Message{
+				Role:    "assistant",
+				Content: response.Content,
+			})
+
 			finalResponse = &AgentResponse{
 				Content:   response.Content,
 				ToolCalls: allExecutedCalls,
@@ -143,6 +146,13 @@ func (a *DefaultAgent) Execute(ctx context.Context, prompt string) (*AgentRespon
 			}
 			break
 		}
+
+		// If there are tool calls, add assistant message with empty content
+		// This prevents mixed content+tool_calls from polluting conversation history
+		a.messages = append(a.messages, Message{
+			Role:    "assistant",
+			Content: "",
+		})
 
 		// Execute tool calls
 		for _, toolCall := range response.ToolCalls {
