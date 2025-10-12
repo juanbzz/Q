@@ -36,7 +36,8 @@ const (
 
 // AgentConfig holds configuration for an agent
 type AgentConfig struct {
-	Model       string  `json:"model"`
-	MaxTokens   int     `json:"max_tokens"`
-	Temperature float64 `json:"temperature"`
+	Model         string  `json:"model"`
+	MaxTokens     int     `json:"max_tokens"`
+	Temperature   float64 `json:"temperature"`
+	MaxIterations int     `json:"max_iterations"` // Maximum agent loop iterations (default: 10)
 }
