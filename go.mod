@@ -1,3 +1,3 @@
-module github.com/j0lvera/rack
+module github.com/juanbzz/q
 
 go 1.24.2

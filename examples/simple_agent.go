@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/j0lvera/rack"
+	"github.com/juanbzz/q"
 )
 
 // Example: Building a simple file analysis agent
@@ -14,30 +14,30 @@ func main() {
 	fmt.Println("=== Simple File Analysis Agent ===")
 	
 	// Create tool registry
-	registry := rack.NewToolRegistry()
+	registry := q.NewToolRegistry()
 	
 	// Register file operation tools
-	registry.Register(rack.ReadFileTool())
-	registry.Register(rack.ListFilesTool())
-	registry.Register(rack.WriteFileTool())
+	registry.Register(q.ReadFileTool())
+	registry.Register(q.ListFilesTool())
+	registry.Register(q.WriteFileTool())
 	
 	// Create a mock LLM provider that simulates intelligent responses
-	provider := rack.NewMockProvider([]string{
+	provider := q.NewMockProvider([]string{
 		"I'll analyze your project structure. Let me start by listing the files. TOOL_CALL: list_files",
 		"Now let me examine the main module file to understand the project. TOOL_CALL: read_file",
-		"Based on my analysis, this is a Go project called 'rack' - an agentic tooling library. Let me create a summary report. TOOL_CALL: write_file",
+		"Based on my analysis, this is a Go project called 'Q' - an agentic tooling library. Let me create a summary report. TOOL_CALL: write_file",
 		"Analysis complete! I've created a project summary in 'analysis_report.txt'. The project appears to be well-structured with clean interfaces for building AI agents.",
 	})
 	
 	// Configure the agent
-	config := rack.AgentConfig{
+	config := q.AgentConfig{
 		Model:       "gpt-4",
 		MaxTokens:   4096,
 		Temperature: 0.1,
 	}
 	
 	// Create the agent
-	agent := rack.NewAgent(provider, registry, config)
+	agent := q.NewAgent(provider, registry, config)
 	
 	// Execute the analysis
 	ctx := context.Background()
@@ -91,10 +91,10 @@ func (t *ProjectStatsTool) Description() string {
 	return "Analyze project statistics like file count, lines of code, etc."
 }
 
-func (t *ProjectStatsTool) Schema() rack.Schema {
-	return rack.Schema{
+func (t *ProjectStatsTool) Schema() q.Schema {
+	return q.Schema{
 		Type: "object",
-		Properties: map[string]rack.SchemaField{
+		Properties: map[string]q.SchemaField{
 			"path": {
 				Type:        "string",
 				Description: "Project path to analyze",
@@ -104,13 +104,13 @@ func (t *ProjectStatsTool) Schema() rack.Schema {
 	}
 }
 
-func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (*rack.ToolResult, error) {
+func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (*q.ToolResult, error) {
 	var params struct {
 		Path string `json:"path"`
 	}
 	
 	if err := json.Unmarshal(input, &params); err != nil {
-		return &rack.ToolResult{Error: "invalid input parameters"}, nil
+		return &q.ToolResult{Error: "invalid input parameters"}, nil
 	}
 	
 	if params.Path == "" {
@@ -128,7 +128,7 @@ func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (
 	
 	statsJSON, _ := json.MarshalIndent(stats, "", "  ")
 	
-	return &rack.ToolResult{
+	return &q.ToolResult{
 		Content: fmt.Sprintf("Project Statistics:\n%s", string(statsJSON)),
 		Metadata: map[string]any{
 			"analyzed_path": params.Path,
@@ -139,10 +139,10 @@ func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (
 
 // Example usage with custom tool
 func customToolExample() {
-	registry := rack.NewToolRegistry()
+	registry := q.NewToolRegistry()
 	
 	// Register built-in and custom tools
-	registry.Register(rack.ReadFileTool())
+	registry.Register(q.ReadFileTool())
 	registry.Register(&ProjectStatsTool{})
 	
 	ctx := context.Background()

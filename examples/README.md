@@ -1,6 +1,6 @@
-# Rack Examples
+# Q Examples
 
-This directory contains examples showing how to use the Rack agentic tooling library with real LLM providers.
+This directory contains examples showing how to use the Q agentic tooling library with real LLM providers.
 
 ## Setup
 
@@ -63,29 +63,29 @@ provider, err := NewOpenRouterProvider("openai/gpt-4")
 ## Creating Your Own Examples
 
 1. Add your example to this directory
-2. Import the rack library: `import "github.com/j0lvera/rack"`
+2. Import the Q library: `import "github.com/juanbzz/q"`
 3. Use `go mod tidy` to update dependencies
-4. The local rack library is available via the replace directive in `go.mod`
+4. The local Q library is available via the replace directive in `go.mod`
 
 ## Usage Patterns
 
 **Tools Only** (minimal):
 ```go
-import "github.com/j0lvera/rack"
+import "github.com/juanbzz/q"
 
-registry := rack.NewToolRegistry()
-registry.Register(rack.ReadFileTool())
+registry := q.NewToolRegistry()
+registry.Register(q.ReadFileTool())
 result, _ := registry.Execute(ctx, "read_file", input)
 ```
 
 **Agent Building** (full framework):
 ```go
-import "github.com/j0lvera/rack"
+import "github.com/juanbzz/q"
 
-registry := rack.NewToolRegistry()
-registry.Register(rack.ReadFileTool())
+registry := q.NewToolRegistry()
+registry.Register(q.ReadFileTool())
 
-agent := rack.NewAgent(provider, registry, config)
+agent := q.NewAgent(provider, registry, config)
 response, _ := agent.Execute(ctx, "Analyze this project")
 ```
 

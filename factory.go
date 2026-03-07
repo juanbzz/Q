@@ -1,4 +1,4 @@
-package rack
+package q
 
 // Convenience functions for creating common tools
 func ReadFileTool() Tool {

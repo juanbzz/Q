@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Rack is a minimalist agentic tooling library for Go that provides a unified interface for agents to use tools—from simple file operations to complex external services via Model Context Protocol (MCP). It enables building coding assistants, automation tools, and intelligent CLI applications.
+Q is a minimalist agentic tooling library for Go that provides a unified interface for agents to use tools—from simple file operations to complex external services via Model Context Protocol (MCP). Named after James Bond's quartermaster who equips agents with tools before each mission, it enables building coding assistants, automation tools, and intelligent CLI applications.
 
 ## Build and Test Commands
 
@@ -34,7 +34,7 @@ Rack is a minimalist agentic tooling library for Go that provides a unified inte
 5. **MCP Layer** (`mcp.go`) - External MCP server integration via JSON-RPC over stdin/stdout
 
 ### Package Organization
-Single package design (`package rack`) with logical file separation:
+Single package design (`package q`) with logical file separation:
 - `tool.go` - Core Tool interface and types (Schema, SchemaField, ToolResult, ToolCall)
 - `registry.go` - ToolRegistry interface and DefaultToolRegistry implementation
 - `tools.go` - Built-in tools (ReadFile, WriteFile, ListFiles, Exec)
@@ -42,7 +42,7 @@ Single package design (`package rack`) with logical file separation:
 - `llm.go` - LLMProvider interface, DefaultAgent, mock provider
 - `mcp.go` - MCPServer management, MCPTool wrapper
 - `factory.go` - Convenience factory functions
-- `rack_test.go` - All tests (uses `package rack_test`)
+- `q_test.go` - All tests (uses `package q_test`)
 
 ### Key Interfaces
 
@@ -114,4 +114,4 @@ type ToolRegistry interface {
 - Use table-driven tests for multiple scenarios
 - Test both success and error cases
 - Mock external dependencies (LLM providers, MCP servers)
-- All tests in `rack_test.go` with `package rack_test`
+- All tests in `q_test.go` with `package q_test`

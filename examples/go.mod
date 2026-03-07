@@ -1,11 +1,11 @@
-module github.com/j0lvera/rack/examples
+module github.com/juanbzz/q/examples
 
 go 1.24.2
 
-replace github.com/j0lvera/rack => ../
+replace github.com/juanbzz/q => ../
 
 require (
-	github.com/j0lvera/rack v0.0.0-00010101000000-000000000000
+	github.com/juanbzz/q v0.0.0-00010101000000-000000000000
 	github.com/tmc/langchaingo v0.1.13
 )
 

@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/j0lvera/rack"
+	"github.com/juanbzz/q"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
-// OpenRouterProvider implements rack.LLMProvider using langchaingo with OpenRouter
+// OpenRouterProvider implements q.LLMProvider using langchaingo with OpenRouter
 type OpenRouterProvider struct {
 	llm   llms.Model
 	model string
@@ -42,9 +42,9 @@ func NewOpenRouterProvider(model string) (*OpenRouterProvider, error) {
 	}, nil
 }
 
-// Chat implements rack.LLMProvider interface
-func (p *OpenRouterProvider) Chat(ctx context.Context, messages []rack.Message, tools []rack.ToolDefinition) (*rack.LLMResponse, error) {
-	// Convert rack messages to langchaingo format
+// Chat implements q.LLMProvider interface
+func (p *OpenRouterProvider) Chat(ctx context.Context, messages []q.Message, tools []q.ToolDefinition) (*q.LLMResponse, error) {
+	// Convert q messages to langchaingo format
 	var content strings.Builder
 	
 	for _, msg := range messages {
@@ -63,7 +63,7 @@ func (p *OpenRouterProvider) Chat(ctx context.Context, messages []rack.Message, 
 	// Add tool definitions if tools are available
 	if len(tools) > 0 {
 		toolsJSON, _ := json.MarshalIndent(tools, "", "  ")
-		toolPrompt := fmt.Sprintf(`\n\nYou have access to the following rack. When you need to use a tool, respond with "TOOL_CALL: tool_name" followed by the JSON arguments on the next line.
+		toolPrompt := fmt.Sprintf(`\n\nYou have access to the following q. When you need to use a tool, respond with "TOOL_CALL: tool_name" followed by the JSON arguments on the next line.
 
 Available tools:
 %s
@@ -86,7 +86,7 @@ Use tools when appropriate to help answer the user's request.`, string(toolsJSON
 	responseText := response.Choices[0].Content
 
 	// Parse response for tool calls
-	var toolCalls []rack.LLMToolCall
+	var toolCalls []q.LLMToolCall
 
 	// Simple tool call detection
 	if strings.Contains(responseText, "TOOL_CALL:") {
@@ -106,7 +106,7 @@ Use tools when appropriate to help answer the user's request.`, string(toolsJSON
 						}
 					}
 
-					toolCalls = append(toolCalls, rack.LLMToolCall{
+					toolCalls = append(toolCalls, q.LLMToolCall{
 						ID:        fmt.Sprintf("call_%d", len(toolCalls)+1),
 						Name:      toolName,
 						Arguments: args,
@@ -116,11 +116,11 @@ Use tools when appropriate to help answer the user's request.`, string(toolsJSON
 		}
 	}
 
-	return &rack.LLMResponse{
+	return &q.LLMResponse{
 		Content:   responseText,
 		ToolCalls: toolCalls,
 		Model:     p.model,
-		Usage: &rack.Usage{
+		Usage: &q.Usage{
 			PromptTokens:     0, // langchaingo doesn't always provide usage stats
 			CompletionTokens: 0,
 			TotalTokens:      0,
@@ -128,27 +128,27 @@ Use tools when appropriate to help answer the user's request.`, string(toolsJSON
 	}, nil
 }
 
-// Stream implements rack.LLMProvider interface (simplified implementation)
-func (p *OpenRouterProvider) Stream(ctx context.Context, messages []rack.Message, tools []rack.ToolDefinition) (<-chan *rack.StreamEvent, error) {
-	ch := make(chan *rack.StreamEvent, 1)
+// Stream implements q.LLMProvider interface (simplified implementation)
+func (p *OpenRouterProvider) Stream(ctx context.Context, messages []q.Message, tools []q.ToolDefinition) (<-chan *q.StreamEvent, error) {
+	ch := make(chan *q.StreamEvent, 1)
 	go func() {
 		defer close(ch)
 		response, err := p.Chat(ctx, messages, tools)
 		if err != nil {
-			ch <- &rack.StreamEvent{Type: "error", Error: err.Error()}
+			ch <- &q.StreamEvent{Type: "error", Error: err.Error()}
 			return
 		}
-		ch <- &rack.StreamEvent{Type: "content", Content: response.Content}
+		ch <- &q.StreamEvent{Type: "content", Content: response.Content}
 		for _, toolCall := range response.ToolCalls {
-			ch <- &rack.StreamEvent{Type: "tool_call", ToolCall: &toolCall}
+			ch <- &q.StreamEvent{Type: "tool_call", ToolCall: &toolCall}
 		}
-		ch <- &rack.StreamEvent{Type: "done"}
+		ch <- &q.StreamEvent{Type: "done"}
 	}()
 	return ch, nil
 }
 
 func main() {
-	fmt.Println("=== Rack + LangChain Go + OpenRouter Example ===")
+	fmt.Println("=== Q + LangChain Go + OpenRouter Example ===")
 
 	// Check for API key
 	if os.Getenv("OPENROUTER_API_KEY") == "" {
@@ -162,20 +162,20 @@ func main() {
 	}
 
 	// Create tool registry
-	registry := rack.NewToolRegistry()
-	registry.Register(rack.ReadFileTool())
-	registry.Register(rack.ListFilesTool())
-	registry.Register(rack.WriteFileTool())
+	registry := q.NewToolRegistry()
+	registry.Register(q.ReadFileTool())
+	registry.Register(q.ListFilesTool())
+	registry.Register(q.WriteFileTool())
 
 	// Create agent config
-	config := rack.AgentConfig{
+	config := q.AgentConfig{
 		Model:       "anthropic/claude-3.5-sonnet",
 		MaxTokens:   4096,
 		Temperature: 0.1,
 	}
 
 	// Create agent with real LLM
-	agent := rack.NewAgent(provider, registry, config)
+	agent := q.NewAgent(provider, registry, config)
 
 	// Example 1: Simple analysis
 	fmt.Println("\n🤖 Analyzing project with real LLM...")
@@ -197,7 +197,7 @@ func main() {
 	}
 
 	if usageInterface, ok := response.Metadata["usage"]; ok {
-		if usage, ok := usageInterface.(*rack.Usage); ok && usage != nil {
+		if usage, ok := usageInterface.(*q.Usage); ok && usage != nil {
 			fmt.Printf("📊 Token Usage: %d prompt + %d completion = %d total\n", 
 				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
 		}
@@ -207,7 +207,7 @@ func main() {
 	fmt.Println("\n" + strings.Repeat("=", 50))
 	fmt.Println("🔍 Performing detailed code analysis...")
 	
-	response2, err := agent.Execute(ctx, "Now analyze the Go source files in this project. Read a few key files like tool.go and rack.go to understand the architecture. Then write a brief technical summary to 'architecture_summary.md'.")
+	response2, err := agent.Execute(ctx, "Now analyze the Go source files in this project. Read a few key files like tool.go and q.go to understand the architecture. Then write a brief technical summary to 'architecture_summary.md'.")
 	if err != nil {
 		log.Printf("Second analysis failed: %v", err)
 	} else {
@@ -228,7 +228,7 @@ func directProviderExample() {
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	messages := []rack.Message{
+	messages := []q.Message{
 		{Role: "system", Content: "You are a helpful Go programming assistant."},
 		{Role: "user", Content: "Explain what an interface is in Go programming."},
 	}

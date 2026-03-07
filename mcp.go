@@ -1,4 +1,4 @@
-package rack
+package q
 
 import (
 	"bufio"
@@ -320,7 +320,7 @@ func (s *MCPServer) initialize(ctx context.Context) error {
 				"tools": map[string]interface{}{},
 			},
 			"clientInfo": map[string]interface{}{
-				"name":    "rack-go",
+				"name":    "q-go",
 				"version": "1.0.0",
 			},
 		},

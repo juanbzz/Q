@@ -1,7 +1,7 @@
-# Rack Framework Examples - Technical Architecture
+# Q Framework Examples - Technical Architecture
 
 ## Project Overview
-This repository demonstrates the implementation of AI agents using the Rack framework, showcasing both a simple mock implementation and a production-ready OpenRouter integration.
+This repository demonstrates the implementation of AI agents using the Q framework, showcasing both a simple mock implementation and a production-ready OpenRouter integration.
 
 ## Core Components
 
@@ -20,7 +20,7 @@ The simple agent implementation demonstrates the basic framework capabilities:
 
 - **Configuration**
   ```go
-  config := rack.AgentConfig{
+  config := q.AgentConfig{
       Model:       "gpt-4",
       MaxTokens:   4096,
       Temperature: 0.1,
@@ -58,8 +58,8 @@ type OpenRouterProvider struct {
 }
 
 // Core methods
-func (p *OpenRouterProvider) Chat(ctx context.Context, messages []rack.Message, tools []rack.ToolDefinition) (*rack.LLMResponse, error)
-func (p *OpenRouterProvider) Stream(ctx context.Context, messages []rack.Message, tools []rack.ToolDefinition) (<-chan *rack.StreamEvent, error)
+func (p *OpenRouterProvider) Chat(ctx context.Context, messages []q.Message, tools []q.ToolDefinition) (*q.LLMResponse, error)
+func (p *OpenRouterProvider) Stream(ctx context.Context, messages []q.Message, tools []q.ToolDefinition) (<-chan *q.StreamEvent, error)
 ```
 
 ### Tool Interface
@@ -68,8 +68,8 @@ type ProjectStatsTool struct{}
 
 func (t *ProjectStatsTool) Name() string
 func (t *ProjectStatsTool) Description() string
-func (t *ProjectStatsTool) Schema() rack.Schema
-func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (*rack.ToolResult, error)
+func (t *ProjectStatsTool) Schema() q.Schema
+func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (*q.ToolResult, error)
 ```
 
 ## Implementation Features
@@ -123,12 +123,12 @@ func (t *ProjectStatsTool) Execute(ctx context.Context, input json.RawMessage) (
 ### Basic Agent Usage
 ```go
 // Create and configure agent
-registry := rack.NewToolRegistry()
-registry.Register(rack.ReadFileTool())
-registry.Register(rack.ListFilesTool())
-registry.Register(rack.WriteFileTool())
+registry := q.NewToolRegistry()
+registry.Register(q.ReadFileTool())
+registry.Register(q.ListFilesTool())
+registry.Register(q.WriteFileTool())
 
-agent := rack.NewAgent(provider, registry, config)
+agent := q.NewAgent(provider, registry, config)
 
 // Execute agent
 response, err := agent.Execute(ctx, "Please analyze this project")
@@ -144,9 +144,9 @@ response, err := provider.Chat(ctx, messages, nil)
 ```go
 type CustomTool struct{}
 
-func (t *CustomTool) Execute(ctx context.Context, input json.RawMessage) (*rack.ToolResult, error) {
+func (t *CustomTool) Execute(ctx context.Context, input json.RawMessage) (*q.ToolResult, error) {
     // Tool implementation
-    return &rack.ToolResult{
+    return &q.ToolResult{
         Content: "Result",
         Metadata: map[string]any{
             "key": "value",
@@ -156,7 +156,7 @@ func (t *CustomTool) Execute(ctx context.Context, input json.RawMessage) (*rack.
 ```
 
 ## Conclusion
-The Rack framework examples demonstrate a well-architected system for building AI agents in Go. The code showcases:
+The Q framework examples demonstrate a well-architected system for building AI agents in Go. The code showcases:
 - Clean architecture principles
 - Proper error handling
 - Extensible design
