@@ -189,6 +189,86 @@ func TestAgent(t *testing.T) {
 	}
 }
 
+func TestOnStep(t *testing.T) {
+	tests := []struct {
+		name       string
+		responses  []string
+		withTools  bool
+		wantEvents []string
+	}{
+		{
+			name:       "simple path emits content and done",
+			responses:  []string{"Here is my answer."},
+			withTools:  false,
+			wantEvents: []string{q.EventTypeContent, q.EventTypeDone},
+		},
+		{
+			name: "tool-calling path emits content, tool_call, content, done",
+			responses: []string{
+				"Let me check. TOOL_CALL: list_files",
+				"Here are the results.",
+			},
+			withTools:  true,
+			wantEvents: []string{q.EventTypeContent, q.EventTypeToolCall, q.EventTypeContent, q.EventTypeDone},
+		},
+		{
+			name:       "nil OnStep does not panic",
+			responses:  []string{"Hello."},
+			withTools:  false,
+			wantEvents: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			registry := q.NewToolRegistry()
+			if tt.withTools {
+				registry.Register(q.ListFilesTool())
+			}
+
+			provider := q.NewMockProvider(tt.responses)
+
+			var events []q.AgentEvent
+			config := q.AgentConfig{
+				Model:       "test-model",
+				MaxTokens:   1000,
+				Temperature: 0.1,
+			}
+
+			if tt.wantEvents != nil {
+				config.OnStep = func(e q.AgentEvent) {
+					events = append(events, e)
+				}
+			}
+
+			agent := q.NewAgent(provider, registry, config)
+			ctx := context.Background()
+
+			_, err := agent.Run(ctx, "test")
+			if err != nil {
+				t.Fatalf("Run failed: %v", err)
+			}
+
+			if tt.wantEvents == nil {
+				if len(events) != 0 {
+					t.Errorf("expected no events, got %d", len(events))
+				}
+				return
+			}
+
+			if len(events) != len(tt.wantEvents) {
+				t.Fatalf("expected %d events, got %d: %v", len(tt.wantEvents), len(events), events)
+			}
+
+			for i, want := range tt.wantEvents {
+				if events[i].Type != want {
+					t.Errorf("event[%d]: expected type %q, got %q", i, want, events[i].Type)
+				}
+			}
+		})
+	}
+}
+
 func TestToolToDefinition(t *testing.T) {
 	tool := q.ReadFileTool()
 	definition := q.ToolToDefinition(tool)

@@ -2,6 +2,7 @@ package q
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -50,6 +51,7 @@ type AgentConfig struct {
 	SystemPrompt  string      `json:"system_prompt"`
 	Environment   Environment `json:"-"`
 	Parser        Parser      `json:"-"`
+	OnStep        func(event AgentEvent)
 }
 
 // ActionType represents the type of action to execute.
@@ -121,6 +123,12 @@ func NewAgent(provider LLMProvider, registry ToolRegistry, config AgentConfig) *
 		registry: registry,
 		config:   config,
 		messages: []Message{},
+	}
+}
+
+func (a *DefaultAgent) emit(event AgentEvent) {
+	if a.config.OnStep != nil {
+		a.config.OnStep(event)
 	}
 }
 
@@ -243,6 +251,7 @@ func (a *DefaultAgent) runToolCalling(ctx context.Context) (*AgentResponse, erro
 
 			var procErr *ProcessErr
 			if errors.As(err, &procErr) {
+				a.emit(AgentEvent{Type: EventTypeError, Error: procErr.Message})
 				a.messages = append(a.messages, Message{
 					Role:    "user",
 					Content: procErr.Message,
@@ -253,10 +262,18 @@ func (a *DefaultAgent) runToolCalling(ctx context.Context) (*AgentResponse, erro
 			return nil, err
 		}
 
+		if stepResult.Content != "" {
+			a.emit(AgentEvent{Type: EventTypeContent, Content: stepResult.Content})
+		}
+		for _, tc := range stepResult.ToolCalls {
+			a.emit(AgentEvent{Type: EventTypeToolCall, Tool: &tc})
+		}
+
 		allExecutedCalls = append(allExecutedCalls, stepResult.ToolCalls...)
 		addUsage(totalUsage, stepResult.Usage)
 
 		if stepResult.Done {
+			a.emit(AgentEvent{Type: EventTypeDone})
 			return &AgentResponse{
 				Content:    stepResult.Content,
 				ToolCalls:  allExecutedCalls,
@@ -288,6 +305,7 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 		if err != nil {
 			var procErr *ProcessErr
 			if errors.As(err, &procErr) {
+				a.emit(AgentEvent{Type: EventTypeError, Error: procErr.Message})
 				a.messages = append(a.messages, Message{
 					Role:    "user",
 					Content: procErr.Message,
@@ -296,6 +314,8 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 			}
 			return nil, err
 		}
+
+		a.emit(AgentEvent{Type: EventTypeContent, Content: response.Content})
 
 		a.messages = append(a.messages, Message{
 			Role:    "assistant",
@@ -306,6 +326,7 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 		if err != nil {
 			var procErr *ProcessErr
 			if errors.As(err, &procErr) {
+				a.emit(AgentEvent{Type: EventTypeError, Error: procErr.Message})
 				a.messages = append(a.messages, Message{
 					Role:    "user",
 					Content: procErr.Message,
@@ -315,7 +336,14 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 			return nil, err
 		}
 
+		a.emit(AgentEvent{
+			Type:    EventTypeToolCall,
+			Tool:    &ToolCall{Name: string(action.Type), Input: json.RawMessage(`"` + action.Command + `"`)},
+			Content: output.Stdout,
+		})
+
 		if isTaskComplete(output.Stdout) {
+			a.emit(AgentEvent{Type: EventTypeDone})
 			return &AgentResponse{
 				Content:    extractFinalOutput(output.Stdout),
 				Iterations: i + 1,
@@ -338,11 +366,14 @@ func (a *DefaultAgent) runSimple(ctx context.Context) (*AgentResponse, error) {
 		return nil, fmt.Errorf("LLM error: %w", err)
 	}
 
+	a.emit(AgentEvent{Type: EventTypeContent, Content: response.Content})
+
 	a.messages = append(a.messages, Message{
 		Role:    "assistant",
 		Content: response.Content,
 	})
 
+	a.emit(AgentEvent{Type: EventTypeDone})
 	return &AgentResponse{
 		Content:    response.Content,
 		Iterations: 1,
