@@ -301,6 +301,16 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 
 		addUsage(totalUsage, response.Usage)
 
+		if containsCompletionMarker(response.Content) && !strings.Contains(response.Content, "```bash") {
+			a.emit(AgentEvent{Type: EventTypeContent, Content: response.Content})
+			a.emit(AgentEvent{Type: EventTypeDone})
+			return &AgentResponse{
+				Content:    extractCompletionContent(response.Content),
+				Iterations: i + 1,
+				TotalUsage: totalUsage,
+			}, nil
+		}
+
 		action, err := a.config.Parser.ParseAction(response.Content)
 		if err != nil {
 			var procErr *ProcessErr
@@ -342,10 +352,14 @@ func (a *DefaultAgent) runBashOnly(ctx context.Context) (*AgentResponse, error) 
 			Content: output.Stdout,
 		})
 
-		if isTaskComplete(output.Stdout) {
+		if isTaskComplete(output.Stdout) || containsCompletionMarker(response.Content) {
 			a.emit(AgentEvent{Type: EventTypeDone})
+			content := extractFinalOutput(output.Stdout)
+			if content == "" {
+				content = extractCompletionContent(response.Content)
+			}
 			return &AgentResponse{
-				Content:    extractFinalOutput(output.Stdout),
+				Content:    content,
 				Iterations: i + 1,
 				TotalUsage: totalUsage,
 			}, nil
@@ -396,6 +410,35 @@ const completionMarker = "TASK_COMPLETE"
 func isTaskComplete(stdout string) bool {
 	firstLine := strings.SplitN(strings.TrimSpace(stdout), "\n", 2)[0]
 	return strings.TrimSpace(firstLine) == completionMarker
+}
+
+func containsCompletionMarker(text string) bool {
+	for _, line := range strings.Split(text, "\n") {
+		if strings.TrimSpace(line) == completionMarker || strings.HasPrefix(strings.TrimSpace(line), completionMarker+":") {
+			return true
+		}
+	}
+	return false
+}
+
+func extractCompletionContent(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == completionMarker || strings.HasPrefix(trimmed, completionMarker+":") {
+			after := strings.TrimPrefix(trimmed, completionMarker)
+			after = strings.TrimPrefix(after, ":")
+			after = strings.TrimSpace(after)
+			if after != "" {
+				return after
+			}
+			if i+1 < len(lines) {
+				return strings.TrimSpace(strings.Join(lines[i+1:], "\n"))
+			}
+			return ""
+		}
+	}
+	return ""
 }
 
 func extractFinalOutput(stdout string) string {

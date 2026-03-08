@@ -14,7 +14,7 @@ registry.Register(q.ExecTool())
 
 // Send it on a mission
 agent := q.NewAgent(provider, registry, config)
-response, _ := agent.Execute(ctx, "Fix the failing tests")
+response, _ := agent.Run(ctx, "Fix the failing tests")
 ```
 
 ## Why Q?
@@ -23,7 +23,7 @@ Every agent needs equipment. Q handles the boring but critical part — register
 
 - **4-method Tool interface** — dead simple to implement
 - **MCP support** — connect external tool servers over stdin/stdout
-- **Zero dependencies** — the core library imports nothing outside stdlib
+- **Minimal dependencies** — core library depends only on langchaingo
 - **Any LLM** — bring your own provider via the `LLMProvider` interface
 
 ## Quick Start
@@ -71,7 +71,7 @@ agent := q.NewAgent(provider, registry, q.AgentConfig{
     Temperature: 0.1,
 })
 
-response, err := agent.Execute(ctx, "Analyze the current project structure")
+response, err := agent.Run(ctx, "Analyze the current project structure")
 ```
 
 ## Core Interfaces
@@ -162,14 +162,39 @@ The agent loop: prompt → LLM → tool calls → execute → repeat (max 10 ite
 
 ## Examples
 
-See [`examples/`](examples/) for working code:
+See [`examples/`](examples/) for working code. All examples use `models/openai` which works with OpenAI, OpenRouter, or any compatible endpoint.
 
-- **`simple_agent.go`** — mock LLM, no API key needed
-- **`openrouter_agent.go`** — real LLM via OpenRouter
+Set your environment:
 
 ```bash
-cd examples/
-OPENROUTER_API_KEY=xxx go run openrouter_agent.go
+export OPENAI_API_KEY=sk-...
+export OPENAI_BASE_URL=https://openrouter.ai/api/v1  # optional, for OpenRouter
+export MODEL=anthropic/claude-sonnet-4-5-20250929     # optional, this is the default
+```
+
+### basic
+
+Bash-only agent — the LLM generates shell commands, Q executes them.
+
+```bash
+cd examples && go run ./basic
+```
+
+### tools
+
+Tool-calling agent — uses Q's built-in tools (`read_file`, `write_file`, `list_files`, `exec`) via the LLM's native tool-calling protocol.
+
+```bash
+cd examples && go run ./tools
+```
+
+### cli
+
+Cobra-based CLI wrapping the bash-only agent with flags for working directory, timeout, and max steps.
+
+```bash
+cd examples && go run ./cli run "list all Go files in the project"
+cd examples && go run ./cli run --working-dir /tmp --timeout 60s --max-steps 10 "create a hello.txt file"
 ```
 
 ## Testing
