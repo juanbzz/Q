@@ -204,3 +204,5 @@ http-client.private.env.json
 .envrc
 .idea
 .aider*
+.claude
+.context

@@ -1,12 +1,12 @@
 module github.com/juanbzz/q/examples
 
-go 1.24.2
+go 1.24.4
 
 replace github.com/juanbzz/q => ../
 
 require (
 	github.com/juanbzz/q v0.0.0-00010101000000-000000000000
-	github.com/tmc/langchaingo v0.1.13
+	github.com/tmc/langchaingo v0.1.14
 )
 
 require (

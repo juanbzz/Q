@@ -171,7 +171,7 @@ func TestAgent(t *testing.T) {
 
 	// Test execution
 	ctx := context.Background()
-	response, err := agentInstance.Execute(ctx, "Analyze the project")
+	response, err := agentInstance.Run(ctx, "Analyze the project")
 	if err != nil {
 		t.Fatalf("Agent execution failed: %v", err)
 	}
@@ -180,18 +180,12 @@ func TestAgent(t *testing.T) {
 		t.Error("Expected content in agent response")
 	}
 
-	// Should have used tools
 	if len(response.ToolCalls) == 0 {
 		t.Error("Expected agent to use tools")
 	}
 
-	// Check metadata
-	if response.Metadata == nil {
-		t.Error("Expected metadata in agent response")
-	}
-
-	if iterations, ok := response.Metadata["iterations"]; !ok || iterations == nil {
-		t.Error("Expected iterations in metadata")
+	if response.Iterations == 0 {
+		t.Error("Expected iterations > 0")
 	}
 }
 

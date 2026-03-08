@@ -181,7 +181,7 @@ func main() {
 	fmt.Println("\n🤖 Analyzing project with real LLM...")
 	ctx := context.Background()
 	
-	response, err := agent.Execute(ctx, "Please analyze the current Go project structure. List the files first, then read the go.mod file to understand what this project does.")
+	response, err := agent.Run(ctx, "Please analyze the current Go project structure. List the files first, then read the go.mod file to understand what this project does.")
 	if err != nil {
 		log.Fatalf("Agent execution failed: %v", err)
 	}
@@ -192,22 +192,18 @@ func main() {
 		fmt.Printf("  %d. %s\n", i+1, call.Name)
 	}
 
-	if metadata, ok := response.Metadata["iterations"]; ok {
-		fmt.Printf("\n⚡ Completed in %v iterations\n", metadata)
-	}
+	fmt.Printf("\n⚡ Completed in %d iterations\n", response.Iterations)
 
-	if usageInterface, ok := response.Metadata["usage"]; ok {
-		if usage, ok := usageInterface.(*q.Usage); ok && usage != nil {
-			fmt.Printf("📊 Token Usage: %d prompt + %d completion = %d total\n", 
-				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
-		}
+	if response.TotalUsage != nil {
+		fmt.Printf("📊 Token Usage: %d prompt + %d completion = %d total\n",
+			response.TotalUsage.PromptTokens, response.TotalUsage.CompletionTokens, response.TotalUsage.TotalTokens)
 	}
 
 	// Example 2: Code analysis task
 	fmt.Println("\n" + strings.Repeat("=", 50))
 	fmt.Println("🔍 Performing detailed code analysis...")
 	
-	response2, err := agent.Execute(ctx, "Now analyze the Go source files in this project. Read a few key files like tool.go and q.go to understand the architecture. Then write a brief technical summary to 'architecture_summary.md'.")
+	response2, err := agent.Run(ctx, "Now analyze the Go source files in this project. Read a few key files like tool.go and q.go to understand the architecture. Then write a brief technical summary to 'architecture_summary.md'.")
 	if err != nil {
 		log.Printf("Second analysis failed: %v", err)
 	} else {

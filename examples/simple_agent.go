@@ -41,7 +41,7 @@ func main() {
 	
 	// Execute the analysis
 	ctx := context.Background()
-	response, err := agent.Execute(ctx, "Please analyze this Go project and create a summary report")
+	response, err := agent.Run(ctx, "Please analyze this Go project and create a summary report")
 	if err != nil {
 		log.Fatalf("Agent execution failed: %v", err)
 	}
@@ -53,9 +53,7 @@ func main() {
 		fmt.Printf("  %d. %s\n", i+1, call.Name)
 	}
 	
-	if metadata, ok := response.Metadata["iterations"]; ok {
-		fmt.Printf("\n⚡ Completed in %v iterations\n", metadata)
-	}
+	fmt.Printf("\n⚡ Completed in %d iterations\n", response.Iterations)
 	
 	// Demonstrate direct tool usage
 	fmt.Println("\n=== Direct Tool Usage ===")
